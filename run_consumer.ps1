@@ -3,46 +3,80 @@
 # USAGE (from the project root in PowerShell):
 #   .\run_consumer.ps1
 #
-# If you get a script execution policy error, run this once first:
-#   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# Works with Conda environments and standard venv.
+# If using Conda, run `conda activate <env-name>` before this script.
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# ── Step 1: locate the virtual environment ────────────────────────────────────
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-if (Test-Path "$ScriptDir\venv") {
-    $VenvDir = "$ScriptDir\venv"
-} elseif (Test-Path "$ScriptDir\.venv") {
-    $VenvDir = "$ScriptDir\.venv"
-} else {
-    Write-Error @"
-ERROR: No virtual environment found.
-       Expected 'venv\' or '.venv\' in: $ScriptDir
-       Create one with:  python -m venv venv
-       Then install deps: pip install -r requirements.txt
-"@
+# ── Step 1: locate opentelemetry-instrument ───────────────────────────────────
+$OtelInstrument = $null
+$Python         = $null
+$EnvLabel       = $null
+
+if ($env:CONDA_PREFIX) {
+    $candidate = "$env:CONDA_PREFIX\Scripts\opentelemetry-instrument.exe"
+    if (Test-Path $candidate) {
+        $OtelInstrument = $candidate
+        $Python         = "$env:CONDA_PREFIX\python.exe"
+        $EnvLabel       = "Conda: $env:CONDA_PREFIX"
+    } else {
+        Write-Host "WARNING: Conda env active ($env:CONDA_PREFIX) but opentelemetry-instrument not found." -ForegroundColor Yellow
+        Write-Host "         Run: pip install -r requirements.txt && opentelemetry-bootstrap -a install" -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
+
+if (-not $OtelInstrument -and $env:VIRTUAL_ENV) {
+    $candidate = "$env:VIRTUAL_ENV\Scripts\opentelemetry-instrument.exe"
+    if (Test-Path $candidate) {
+        $OtelInstrument = $candidate
+        $Python         = "$env:VIRTUAL_ENV\Scripts\python.exe"
+        $EnvLabel       = "venv (active): $env:VIRTUAL_ENV"
+    }
+}
+
+if (-not $OtelInstrument -and (Test-Path "$ScriptDir\venv")) {
+    $candidate = "$ScriptDir\venv\Scripts\opentelemetry-instrument.exe"
+    if (Test-Path $candidate) {
+        $OtelInstrument = $candidate
+        $Python         = "$ScriptDir\venv\Scripts\python.exe"
+        $EnvLabel       = "venv: $ScriptDir\venv"
+    }
+}
+
+if (-not $OtelInstrument -and (Test-Path "$ScriptDir\.venv")) {
+    $candidate = "$ScriptDir\.venv\Scripts\opentelemetry-instrument.exe"
+    if (Test-Path $candidate) {
+        $OtelInstrument = $candidate
+        $Python         = "$ScriptDir\.venv\Scripts\python.exe"
+        $EnvLabel       = "venv: $ScriptDir\.venv"
+    }
+}
+
+if (-not $OtelInstrument) {
+    Write-Host "ERROR: Could not find opentelemetry-instrument in any environment." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  If you are using Conda:"
+    Write-Host "    conda activate <your-env-name>"
+    Write-Host "    pip install -r requirements.txt"
+    Write-Host "    opentelemetry-bootstrap -a install"
+    Write-Host "    .\run_consumer.ps1"
+    Write-Host ""
+    Write-Host "  If you are using a standard venv:"
+    Write-Host "    .\venv\Scripts\Activate.ps1"
+    Write-Host "    pip install -r requirements.txt"
+    Write-Host "    opentelemetry-bootstrap -a install"
+    Write-Host "    .\run_consumer.ps1"
     exit 1
 }
 
-$OtelInstrument = "$VenvDir\Scripts\opentelemetry-instrument.exe"
-$Python         = "$VenvDir\Scripts\python.exe"
-
-# ── Step 2: confirm opentelemetry-instrument is installed ─────────────────────
-if (-not (Test-Path $OtelInstrument)) {
-    Write-Error @"
-ERROR: opentelemetry-instrument not found at: $OtelInstrument
-       Run: pip install -r requirements.txt
-       Then: opentelemetry-bootstrap -a install
-"@
-    exit 1
-}
-
-# ── Step 3: load .env into the current PowerShell session ────────────────────
+# ── Step 2: load .env ─────────────────────────────────────────────────────────
 $EnvFile = "$ScriptDir\.env"
 if (-not (Test-Path $EnvFile)) {
-    Write-Error "ERROR: .env file not found at: $EnvFile"
+    Write-Host "ERROR: .env file not found at: $EnvFile" -ForegroundColor Red
     exit 1
 }
 
@@ -56,13 +90,13 @@ Get-Content $EnvFile | ForEach-Object {
     }
 }
 
-# ── Step 4: print startup summary ─────────────────────────────────────────────
+# ── Step 3: print startup summary ─────────────────────────────────────────────
 Write-Host ""
 Write-Host "Starting Kafka consumer with OTel zero-code instrumentation..." -ForegroundColor Cyan
-Write-Host "  Venv    : $VenvDir"
-Write-Host "  Service : $env:OTEL_SERVICE_NAME"
-Write-Host "  Endpoint: $env:OTEL_EXPORTER_OTLP_ENDPOINT"
+Write-Host "  Environment : $EnvLabel"
+Write-Host "  Service     : $env:OTEL_SERVICE_NAME"
+Write-Host "  Endpoint    : $env:OTEL_EXPORTER_OTLP_ENDPOINT"
 Write-Host ""
 
-# ── Step 5: start the consumer ────────────────────────────────────────────────
+# ── Step 4: start the consumer ────────────────────────────────────────────────
 & $OtelInstrument $Python -m app.kafka_consumer
