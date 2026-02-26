@@ -109,9 +109,9 @@ docker-compose ps
 
 ## Step 3 — Run the API with Zero-Code Instrumentation
 
-Use the provided shell script, which loads `.env` into the shell before starting
-the agent. This is required because `opentelemetry-instrument` reads `OTEL_*`
-config from shell environment variables — it does NOT read `.env` files directly.
+Use the provided shell script. Do **not** call `opentelemetry-instrument` directly
+from your shell — it won't be found unless the venv is active, and even then
+the `.env` variables won't be loaded. The script handles both problems for you.
 
 ```bash
 chmod +x run.sh
@@ -120,11 +120,15 @@ chmod +x run.sh
 
 What this script does internally:
 ```bash
-# 1. Exports all OTEL_* vars from .env into the shell
-export $(grep -v '^\s*#' .env | grep -v '^\s*$' | xargs)
+# 1. Locates your venv/ or .venv/ directory automatically
+OTEL_INSTRUMENT="$VENV_DIR/bin/opentelemetry-instrument"
 
-# 2. Starts the app wrapped in the OTel agent
-opentelemetry-instrument uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+# 2. Sources .env so all OTEL_* vars are in the shell
+#    (opentelemetry-instrument reads env vars, NOT .env files directly)
+source .env
+
+# 3. Starts the app using the full venv path — works whether venv is active or not
+"$OTEL_INSTRUMENT" "$UVICORN" app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 You will see startup output like:
@@ -261,7 +265,7 @@ pip list | grep opentelemetry
 |---|---|---|
 | No traces in Jaeger | Env vars not loaded into shell | Use `./run.sh` — not `uvicorn` directly |
 | Logs missing from Loki | `OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED` not set | Confirm it is `true` in `.env` and `run.sh` is exporting it |
-| `opentelemetry-instrument: command not found` | Package not installed or venv not active | `pip install opentelemetry-distro` and activate venv |
+| `opentelemetry-instrument: command not found` | Script using bare command instead of venv path | Always use `./run.sh` — it resolves the full venv binary path automatically |
 | `Connection refused` to port 4318 | OTel Collector container not running | `docker-compose ps` — restart with `docker-compose up -d` |
 | `NoBrokersAvailable` on Kafka | Kafka not ready yet | Wait 15–20s after `docker-compose up`, then retry |
 | Metrics not visible in Prometheus | Prometheus not scraping collector | Check `otel-collector/prometheus.yaml` — target must be `otel-collector:8889` |
