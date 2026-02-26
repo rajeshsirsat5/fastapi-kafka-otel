@@ -1,0 +1,62 @@
+# otel-collector/otel-collector-config.yaml
+#
+# The OTel Collector sits between your app and the backends.
+# It receives traces, metrics, and logs from the app (via OTLP HTTP on port 4318),
+# then forwards them to Jaeger (traces), Prometheus (metrics), and Loki (logs).
+#
+#   App ──OTLP HTTP──► OTel Collector ──► Jaeger    (traces)
+#                                     ──► Prometheus (metrics)
+#                                     ──► Loki       (logs)
+#                                     ──► Grafana    (dashboards for all three)
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318       # your app sends here (HTTP/protobuf)
+      grpc:
+        endpoint: 0.0.0.0:4317       # alternative gRPC endpoint
+
+processors:
+  batch:
+    timeout: 5s                       # buffer for 5s before flushing
+    send_batch_size: 512
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+
+exporters:
+  # Traces → Jaeger
+  otlp/jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # Metrics → Prometheus (collector exposes /metrics for Prometheus to scrape)
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  # Logs → Loki
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
+  # Debug — prints every received signal to the collector's stdout (useful during dev)
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp/jaeger, debug]
+
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [loki, debug]

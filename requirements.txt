@@ -1,0 +1,23 @@
+# ── Application ───────────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+aiokafka==0.11.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# Needed to load .env vars into the shell before opentelemetry-instrument runs
+python-dotenv==1.0.1
+
+# ── OpenTelemetry zero-code instrumentation ───────────────────────────────────
+# Core SDK + the `opentelemetry-instrument` CLI entry point
+opentelemetry-distro==0.46b0
+opentelemetry-sdk==1.25.0
+
+# OTLP exporter over HTTP/protobuf (port 4318)
+# NOTE: this is opentelemetry-exporter-otlp-proto-HTTP, not grpc
+opentelemetry-exporter-otlp-proto-http==1.25.0
+
+# Auto-instrumentation libraries
+opentelemetry-instrumentation-fastapi==0.46b0   # traces every HTTP route
+opentelemetry-instrumentation-logging==0.46b0   # injects trace_id/span_id into log records
+opentelemetry-instrumentation-requests==0.46b0  # any outbound HTTP (requests lib)

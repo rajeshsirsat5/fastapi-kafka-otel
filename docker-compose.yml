@@ -1,0 +1,85 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Full local observability stack
+#
+# Services:
+#   zookeeper          Kafka coordinator
+#   kafka              Message broker  (localhost:9092)
+#   otel-collector     Receives OTLP from app, fans out to backends (localhost:4317)
+#   jaeger             Trace UI  → http://localhost:16686
+#   prometheus         Metrics scraper + TSDB  → http://localhost:9090
+#   loki               Log aggregation backend
+#   grafana            Unified dashboard for traces, metrics, logs  → http://localhost:3000
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Kafka ──────────────────────────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on: [zookeeper]
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # ── OTel Collector ─────────────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.102.0
+    command: ["--config=/etc/otel/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector/otel-collector-config.yaml:/etc/otel/otel-collector-config.yaml
+    ports:
+      - "4318:4318"    # OTLP HTTP — your app sends here
+      - "4317:4317"    # OTLP gRPC — alternative
+      - "8889:8889"    # Prometheus metrics scrape endpoint
+    depends_on: [jaeger, loki]
+
+  # ── Jaeger (Traces) ────────────────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14250:14250"  # gRPC — collector sends traces here
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  # ── Prometheus (Metrics) ───────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    volumes:
+      - ./otel-collector/prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"    # Prometheus UI
+    depends_on: [otel-collector]
+
+  # ── Loki (Logs) ────────────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.0.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # ── Grafana (Unified dashboards) ───────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.3
+    ports:
+      - "3000:3000"    # Grafana UI  (admin / admin)
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./otel-collector/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    depends_on: [prometheus, loki, jaeger]
