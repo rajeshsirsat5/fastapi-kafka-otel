@@ -1,5 +1,29 @@
-I want to debug the OpenTelemetry issue that is there in my setup. In my setup I have two environments: one is PCF and the other is AWS. PCF has a service that is a Spring Boot service, which has an endpoint. When I hit that endpoint, it publishes the data to one of the topics. Another service in AWS consumes the topic, processes the data, and publishes to a target topic. I really wanted to see the OpenTelemetry trace from this HTTP endpoint all the way to the target topic.
+On these duplicate application surveys, we are actually looking for the mappings, and hence I want to update you with more context so that we come up with the mappings after analysing all these multiple repos.
+Duplicate Application Service is the repo where we do the code for all this fan duplicates API. 
+Now, if you read this code, you are getting the data from two sources:
+1. The Kafka message
+2. The eOBAO HTTP call 
+Both of the systems have different request-response models. Any treatment message that we get from the SEO speaks of a schema, a strategic schema that is defined in the photo of and the repo is onboarding schema. 
 
-In the current setup the PCF service sends telemetry data to the PCF OpenTelemetry collector. The AWS service sends the data to the AWS collector. The PCF collector will forward all the telemetry to the AWS collector and at the end the AWS collector will have telemetry for both services. Now I'm using Grafana to listen to all the events from this AWS collector. I'm using Prometheus, CloudWatch X-Ray, and Cloud Log for all the telemetry data. I could see the logs and metrics but I am not able to see the trace for the entire trace when I hit the endpoint.
+However, there is some conversion required as we are speaking to the EO-BAU system, which doesn't speak the strategic schema language. Hence, we need the conversion between these two sources whenever we get an interconnection Cross application data find. 
 
-This is one issue and another issue is that I should see the trace within the service as well. I mean to say the second service, which consumes the data, at least should show me the trace saying "data is consumed, transformed, and published to the target topic". I don't see both the traces in AWS X-Ray and the Grafana setup. What could be the possible issue that I want you to debug into? 
+If you see a treatment request that you are receiving to find duplicates, it finds the data in two sources:
+1. SEO application store, which speaks the strategic schema language
+2. the EOBAO application, which is the legacy application and gives me data in question-response defined models
+For the request and response of EOBAO, it is already defined in a file that is mapping.md <PLACE>.
+
+And when we get the HTTP request from the UOBAO, we need to map this HTTP request into the strategic schema so that I can call the SEOs find duplicate API from the application store. 
+
+Once we get the data or the response from both the sources, we need to do an appropriate conversion.
+- If the request is from SEO as a treatment message, then I need to convert the Yobo response into an SEO-specific format and send the combined result to SEO.
+- When the request is an HTTP request from Yobo, then I need to convert the Yobo request into an SEO-specific format to find the replicates in SEO.
+- Once SEO returns the response, it has to be converted into a Yobo-specific format, and then Yobo will get the response.
+This is what I said: wherever there is a cross-find, we need to do the request conversion and response conversion as well.
+
+And hence, on this mapping, whatever mappings I could find, I have written into the On-Burning Schema repo, but there are still gaps that you need to identify. To find those gaps, I am providing two different repos, which are called strategic to OBO mapper and OBO to strategic mapper. Both are respectively above the strategic mapper and strategy to above mapper. <PLACE>
+
+So now I want you to refer to all the files and the repos that I have provided and come up with the actual mappings from the above to mapper reports, because these are the golden sources of mappings as of now. I really want to map or validate the request and response structure of UoBao into these two reports. To identify the mappings here, this will also help me to map the SEO-specific data. As I said, there are two different reports, and you have to identify the mappings in both ways so that all the requests and responses will work as expected. 
+
+Key point to note here is that the UOW request and response will not change, as this is the legacy system. Anything that we find in SEO will be converted into the UOW request and response format, and UOW will consume it and pass the request in the same way. All the SEO-related communication happens from the Mongo document. The treatment message that I'm getting is an application-specific Mongo document. You need to find the appropriate fields that we need to find the documents in SEO. There is a different find API that is written. I can share with you that repo also, where we have this find API written, and it gives me the response back. 
+
+Consider all these resources and come up with the mappings. If you still have any questions, you can ask me. 
