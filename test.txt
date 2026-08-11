@@ -27,3 +27,38 @@ So now I want you to refer to all the files and the repos that I have provided a
 Key point to note here is that the UOW request and response will not change, as this is the legacy system. Anything that we find in SEO will be converted into the UOW request and response format, and UOW will consume it and pass the request in the same way. All the SEO-related communication happens from the Mongo document. The treatment message that I'm getting is an application-specific Mongo document. You need to find the appropriate fields that we need to find the documents in SEO. There is a different find API that is written. I can share with you that repo also, where we have this find API written, and it gives me the response back. 
 
 Consider all these resources and come up with the mappings. If you still have any questions, you can ask me. 
+
+
+
+
+
+=========================
+
+Thank god, at least we have something concrete to test the Kafka now. I was confused initially. I did not see the schema, and then I thought, as they are sending the document, that is what they would expect, but that is not the case. Now they have to follow the schema, and they have to send us the Kafka message in the defined treatment needed schema only. That is for sure. At the most, what they can change is the application object, but even I will not allow them to do that. As of now, whatever Kafka message we have coded, we can test it.
+
+ having said that, there are a lot of changes we have done in these three repos, and I am really overwhelmed by all these changes. Also, as you are doing most of the coding, I am a little unaware of the code, so that is not even giving me confidence sometimes. Okay 
+
+ what I really want to do here is this application testing in SIT, and hence I need to create three MRs for duplicate service onboarding schema and App Store. I need to deploy all this into SIT, and then the testing will go on.
+
+before doing this testing in SIT, I really want to see the Kafka response and the Yobo response with the exact fields that we have coded in the request and response, and even the convergence. That is a crucial test for me. We have tried to do this using this dev test flow for the Yobo request, but even it does not give much data. We might need to create the data for that also, and now, for Kafka, as you are writing an integration test, that would really help me to see the data. For both of these state tests, I really need rigorous data in both the systems so that we can really validate our mappings and conversions 
+
+ at the end, for my understanding and for all teams' understanding, I really want to create a document which will explain to me, in each flow, which EOBOW field is mapped to which SCO field. Hence, I would be able to correctly point it out if there is really any mapping missing.this mapping must be done for each flow. Example: let's say SCO Kafka treatment is received. What we do is:
+1. We pass the message.
+2. We get the fields.
+3. We do an SCO call.
+4. We get the SCO fields.
+5. We map it to EOBOW request.
+6. We get the EOBOW data.
+7. We map the EOBOW data into SCO response.
+These two conversions, SCO to EOBOW request and EOBOW response to SCO, have to be written into a document: which fields are mapped where, and vice versa.
+When I get an EOBOW HTTP request, I need to map this EOBOW HTTP request to SCO and then call the SCO app store. Then I'll get the SCO response that has to be mapped again into the EOBOW response, and then I'll send a combined data. This conversion should be symmetric. If I validate this conversion from EOBOW to SCO and SCO to EOBOW, it should give me the symmetric result. This is what I really want to check on
+
+ and at the end, I really want you to note down all the mappings that are doubtful, that we're not really sure whether these are correct or not. Though, for all the mappings, our base is schema onboarding schema, and then the above handoff service is strategic to the above mapping repo. Still, I want you to note down all the doubtful mappings that we have done so that I can discuss this with the higher team 
+
+ now, if you really want to test this rigorously, the only option that I can see as of now is to make the duplicate service run locally. Deploy the app store locally, which will connect to its dev environment, and the EOBAU is already connected to SIT. The duplicate service runs locally with both of these systems connected.
+
+I want you to run these fine duplicates for each and every field with different combinations in R and R. What are the combinations that are written in the find duplicated API? I want you to execute all these parameters and search the data in appstore.
+
+At the same time, I want you to do the same for EOBAU also. Now, for EOBAU, we can actually create data as per a defined schema, and I will insert that into the dev DB. For EOBAU, I really need to find the duplicate applications, then I will create similar duplicate applications in EOBAU so that, for a single request, we will get the data from both the states. Our conversion combined result will be tested thoroughly.
+
+The same goes for compare also. We should have the data in both the systems for the compare ARNs, and so that actual mapping and conversion will be validated  creating the test data in Yobo DB2 is a little difficult because there are so many cardinalities that we need to maintain, but it can be done in the SEO Mongo DB. I don't think there is any option to test this thoroughly. The only option is to find out the duplicate applications manually in DB2 and then create a similar application in appstore 
