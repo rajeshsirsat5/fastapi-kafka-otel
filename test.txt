@@ -62,3 +62,13 @@ I want you to run these fine duplicates for each and every field with different 
 At the same time, I want you to do the same for EOBAU also. Now, for EOBAU, we can actually create data as per a defined schema, and I will insert that into the dev DB. For EOBAU, I really need to find the duplicate applications, then I will create similar duplicate applications in EOBAU so that, for a single request, we will get the data from both the states. Our conversion combined result will be tested thoroughly.
 
 The same goes for compare also. We should have the data in both the systems for the compare ARNs, and so that actual mapping and conversion will be validated  creating the test data in Yobo DB2 is a little difficult because there are so many cardinalities that we need to maintain, but it can be done in the SEO Mongo DB. I don't think there is any option to test this thoroughly. The only option is to find out the duplicate applications manually in DB2 and then create a similar application in appstore 
+
+
+
+===============
+
+ I did not understand you, though. I will just update my understanding here. We have certain fields that we are retrieving from the MongoDB, and we have already written the criteria for this one. Now we are filtering on the process name so that I can get a small or the minimal document as a response.
+
+now, what I thought is that we must be matching our input criteria to any process name in the document (for example, KYB, KYC, or any other process which has our fields). Why don't we retrieve only these process objects into the response rather than going through or retrieving all the processes and making our response very huge or thick (because we will be having multiple duplicate applications going forward) 
+
+ that is why I thought, that is what I said: this process name is not exactly the filter criteria, but it is a projection, so that we should be able to pull only the defined process names 
